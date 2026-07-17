@@ -203,6 +203,10 @@
           $scope.checkoutStage = 'none';
         };
 
+        $scope.showFeedback = function() {
+          $scope.checkoutStage = 'feedback';
+        };
+
         $scope.proceedToVerify = function() {
           // Store purchased items for feedback screen before clearing cart
           $scope.lastPurchasedItems = $scope.cart.items.map(function(item) {
