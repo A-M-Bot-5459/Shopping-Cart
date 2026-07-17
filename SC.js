@@ -3,7 +3,7 @@
 
       var app = angular.module('blinkitApp', []);
 
-      app.controller('CartCtrl', function ($scope, $timeout, $interval) {
+      app.controller('CartCtrl', function ($scope, $timeout, $interval, $http) {
         
         // REPLACED CATEGORY ARRAY TO PERFECTLY MATCH THE PRODUCT DATA
         $scope.categories = [
@@ -50,13 +50,79 @@
           }, 3500);
         };
 
-       
-        // ADD RATINGS TO PREVENT UI ERRORS (Since product data lacked a rating attribute)
+        // ASSIGN PRODUCTS AND IMPLEMENT LOCAL/REMOTE SYNCED REVIEW SYSTEM
         $scope.products = productsData;
-        $scope.products.forEach(function(p) {
-          // Generates a predictable, static mock rating between 4.0 - 5.0 so sorting works seamlessly
-          p.rating = (4.0 + (p.id % 11) / 10).toFixed(1); 
+        var remoteUrl = 'https://kvdb.io/blinkit_ratings_a_m_bot_5459/ratings';
+        $scope.userRatings = {};
+
+        function applyRatings() {
+          $scope.products.forEach(function(p) {
+            // Generate a default rating between 4.0 - 5.0 and a realistic reviews count
+            var defaultRating = 4.0 + (p.id % 11) / 10;
+            var defaultCount = 25 + (p.id * 7) % 80;
+            var totalStars = defaultRating * defaultCount;
+            var ratingsCount = defaultCount;
+
+            // Apply user rating changes if they exist in the DB
+            if ($scope.userRatings && $scope.userRatings[p.id]) {
+              totalStars += $scope.userRatings[p.id].starsSum;
+              ratingsCount += $scope.userRatings[p.id].ratingsCount;
+            }
+
+            p.rating = (totalStars / ratingsCount).toFixed(1);
+            p.reviewsCount = ratingsCount;
+          });
+        }
+
+        // Initialize with default ratings
+        applyRatings();
+
+        // 1. Load local ratings first (instant fallback)
+        try {
+          var local = localStorage.getItem('blinkit_user_ratings');
+          if (local) {
+            $scope.userRatings = JSON.parse(local);
+            applyRatings();
+          }
+        } catch(e) {
+          console.error("Local storage error:", e);
+        }
+
+        // 2. Fetch remote ratings and sync
+        $http.get(remoteUrl).then(function(response) {
+          if (response.data && typeof response.data === 'object') {
+            $scope.userRatings = response.data;
+            try {
+              localStorage.setItem('blinkit_user_ratings', JSON.stringify($scope.userRatings));
+            } catch(e) {}
+            applyRatings();
+          }
+        }, function(err) {
+          console.warn("Failed to fetch remote ratings, using local/default", err);
         });
+
+        $scope.submitRating = function(productId, stars) {
+          if (!$scope.userRatings[productId]) {
+            $scope.userRatings[productId] = { starsSum: 0, ratingsCount: 0 };
+          }
+          $scope.userRatings[productId].starsSum += stars;
+          $scope.userRatings[productId].ratingsCount += 1;
+
+          // Save locally
+          try {
+            localStorage.setItem('blinkit_user_ratings', JSON.stringify($scope.userRatings));
+          } catch(e) {}
+
+          // Apply immediately to the UI
+          applyRatings();
+
+          // Sync to remote
+          $http.put(remoteUrl, $scope.userRatings).then(function() {
+            $scope.showToast("Rating synced successfully across devices!", "success");
+          }, function(err) {
+            console.error("Failed to sync rating to cloud", err);
+          });
+        };
 
         $scope.platformFee = 10;
         $scope.cart = { items: [] };
@@ -138,6 +204,19 @@
         };
 
         $scope.proceedToVerify = function() {
+          // Store purchased items for feedback screen before clearing cart
+          $scope.lastPurchasedItems = $scope.cart.items.map(function(item) {
+            return {
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              qty: item.qty,
+              icon: $scope.getIcon(item.id),
+              userRating: 0,
+              submitted: false
+            };
+          });
+
           $scope.checkoutStage = 'verifying';
           $scope.timerSeconds = 3;
           
@@ -155,6 +234,16 @@
           $scope.checkoutStage = 'none';
           $scope.searchQuery = '';
           $scope.activeCategory = 'Dairy'; // Reverts to match default on completion
+        };
+
+        $scope.handleDropProduct = function(productId) {
+          var id = parseInt(productId, 10);
+          var p = $scope.products.find(function(item) { return item.id === id; });
+          if (p) {
+            $scope.$apply(function() {
+              $scope.add(p);
+            });
+          }
         };
 
         function computeTotals() {

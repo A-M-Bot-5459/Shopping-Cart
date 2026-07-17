@@ -84,7 +84,49 @@
         <div style="font-size: 11px; font-weight:700; color:rgba(255,255,255,0.6); text-transform:uppercase;">Delivery Destination</div>
         <div style="font-size: 13px; font-weight:600; color:#ffffff; margin-top:4px;">{{activeAddress.title}} — {{activeAddress.address}}</div>
       </div>
-      <button class="action-btn" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);" ng-click="closeSuccessScreen()">Shop Fresh Again</button>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button class="action-btn" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);" ng-click="checkoutStage = 'feedback'">Give Feedback & Rate Items</button>
+        <button class="action-btn" style="background: rgba(255,255,255,0.1); color: #ffffff; box-shadow: none;" ng-click="closeSuccessScreen()">Shop Fresh Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAGE 4: Interactive Cloud Synced Feedback Overlay -->
+  <div class="modal-overlay" ng-if="checkoutStage === 'feedback'">
+    <div class="feedback-modal">
+      <h2 style="font-weight: 900; color: #ffffff; margin: 0 0 8px 0; text-align: center;">Rate Your Harvest</h2>
+      <p style="color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.5; margin: 0 0 24px 0; text-align: center;">
+        Your ratings are synced instantly across all devices. Thank you for supporting organic farmers!
+      </p>
+      
+      <div class="feedback-list">
+        <div class="feedback-item-card" ng-repeat="item in lastPurchasedItems">
+          <div class="feedback-item-avatar">
+            <img ng-if="isImageUrl(item.icon)" ng-src="{{item.icon}}" alt="{{item.name}}" />
+            <span ng-if="!isImageUrl(item.icon)">{{item.icon}}</span>
+          </div>
+          
+          <div class="feedback-item-info">
+            <div class="feedback-item-title">{{item.name}}</div>
+            
+            <div class="feedback-stars-row">
+              <span class="star-rating-icon" 
+                    ng-repeat="star in [1,2,3,4,5]" 
+                    ng-class="{filled: item.userRating >= star}" 
+                    ng-click="item.userRating = star; submitRating(item.id, star); item.submitted = true">
+                ★
+              </span>
+              <span class="rating-submit-success" ng-if="item.submitted">✓ Rated!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <button class="action-btn" 
+              style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4); margin-top: 24px;" 
+              ng-click="closeSuccessScreen()">
+        Finish & Continue Shopping
+      </button>
     </div>
   </div>
 
@@ -134,7 +176,11 @@
       </div>
 
       <div class="products-grid">
-        <div class="product-card" ng-repeat="p in (filteredProducts = (products | filter:productFilter | orderBy:sortExpression)) track by p.id">
+        <div class="product-card" 
+             ng-repeat="p in (filteredProducts = (products | filter:productFilter | orderBy:sortExpression)) track by p.id"
+             draggable="true" 
+             ondragstart="event.dataTransfer.setData('text/plain', this.getAttribute('data-id'))" 
+             data-id="{{p.id}}">
           <div class="tag-badge" ng-if="p.rating >= 4.7">Organic Pure</div>
           
           <div class="image-container">
@@ -147,6 +193,7 @@
           
           <div class="rating-container">
             <span class="stars-pill">{{p.rating}} ★</span>
+            <span class="reviews-count-text">({{p.reviewsCount || 0}})</span>
             <span class="assured-badge" ng-if="p.rating >= 4.4">✓ Natural</span>
           </div>
 
@@ -168,7 +215,10 @@
 
     </section>
 
-    <aside class="sidebar">
+    <aside class="sidebar" 
+           ondragover="event.preventDefault(); this.classList.add('drag-over');" 
+           ondragleave="this.classList.remove('drag-over');" 
+           ondrop="this.classList.remove('drag-over'); var id = event.dataTransfer.getData('text/plain'); angular.element(this).scope().handleDropProduct(id); event.preventDefault();">
       <h3>Your Checkout Summary</h3>
 
       <div class="address-shelf">
