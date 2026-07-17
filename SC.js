@@ -52,6 +52,7 @@
 
        
         // ADD RATINGS TO PREVENT UI ERRORS (Since product data lacked a rating attribute)
+        $scope.products = productsData;
         $scope.products.forEach(function(p) {
           // Generates a predictable, static mock rating between 4.0 - 5.0 so sorting works seamlessly
           p.rating = (4.0 + (p.id % 11) / 10).toFixed(1); 
