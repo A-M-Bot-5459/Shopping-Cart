@@ -80,6 +80,11 @@
           return matching ? matching.icon : '🛍️';
         };
 
+        $scope.isImageUrl = function(iconStr) {
+          if (!iconStr) return false;
+          return iconStr.indexOf('/') !== -1 || iconStr.indexOf('.') !== -1;
+        };
+
         function findItem(id) {
           return $scope.cart.items.find(function (x) { return x.id === id; });
         }

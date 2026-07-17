@@ -138,7 +138,8 @@
           <div class="tag-badge" ng-if="p.rating >= 4.7">Organic Pure</div>
           
           <div class="image-container">
-            <span>{{p.icon}}</span>
+            <img ng-if="isImageUrl(p.icon)" ng-src="{{p.icon}}" alt="{{p.name}}" class="product-img" />
+            <span ng-if="!isImageUrl(p.icon)">{{p.icon}}</span>
           </div>
           
           <h3 class="product-title">{{p.name}}</h3>
@@ -183,7 +184,8 @@
       <div class="cart-list" ng-if="cart.items.length">
         <div class="cart-item-card" ng-repeat="it in cart.items track by it.id">
           <div class="cart-item-avatar">
-            {{ getIcon(it.id) }}
+            <img ng-if="isImageUrl(getIcon(it.id))" ng-src="{{getIcon(it.id)}}" alt="{{it.name}}" class="cart-item-img" />
+            <span ng-if="!isImageUrl(getIcon(it.id))">{{ getIcon(it.id) }}</span>
           </div>
           <div class="cart-item-info">
             <div class="cart-item-title">{{it.name}}</div>
