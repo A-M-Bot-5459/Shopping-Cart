@@ -1,4 +1,4 @@
-# Blinkit Premium Marketplace
+# Premium like Marketplace
 
 A high-performance, responsive e-commerce front-end application built with **AngularJS**. This project features a "Dark Liquid Glass" aesthetic, providing a modern, immersive shopping experience for organic grocery delivery.
 
